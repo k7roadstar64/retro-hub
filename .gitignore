@@ -1,0 +1,27 @@
+# Dependências
+node_modules/
+
+# Vercel (config local do CLI)
+.vercel/
+
+# Claude Code (config local)
+.claude/
+
+# Logs e temporários
+.log_temp
+*.log
+*.tmp
+
+# BIOS e ROMs (copyright — nunca commitar binários)
+bios/*
+!bios/README.md
+*.bin
+*.iso
+*.chd
+*.pbp
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.env
+.env.*

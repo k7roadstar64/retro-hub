@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroPlay Hub - Seu Emulador de Retro Games na Web</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://raw.githubusercontent.com https://thumbnails.libretro.com https://*.archive.org https://archive.org http://*.archive.org http://archive.org blob: data:; connect-src 'self' https://*.archive.org http://*.archive.org https://archive.org http://archive.org https://corsproxy.io https://api.allorigins.win https://raw.githubusercontent.com; frame-src 'self'; object-src 'none'; base-uri 'self';">
+    <meta name="description" content="Jogue clássicos de NES, SNES, GBA, Mega Drive e muito mais direto no navegador. Sem instalação.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="RetroPlay Hub - Emulador de Retro Games na Web">
+    <meta property="og:description" content="Jogue clássicos de NES, SNES, GBA, Mega Drive e muito mais direto no navegador. Sem instalação.">
+    <meta property="og:image" content="/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <!-- Folha de Estilos Principal -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Fundo Holográfico e Partículas Neon -->
+    <div class="neon-bg-glow"></div>
+    <div class="particles-container" id="particles"></div>
+
+    <!-- Layout Container -->
+    <div class="app-container">
+        <!-- Barra de Navegação -->
+        <header class="app-header">
+            <div class="logo-area">
+                <i class="fa-solid fa-gamepad logo-icon animate-pulse"></i>
+                <span class="logo-text">RETRO<span class="logo-accent">PLAY</span></span>
+            </div>
+            <nav class="nav-links">
+                <button class="nav-btn active" data-tab="home" id="nav-home">
+                    <i class="fa-solid fa-house"></i> <span>Início</span>
+                </button>
+                <button class="nav-btn" data-tab="explore" id="nav-explore">
+                    <i class="fa-solid fa-globe"></i> <span>Explorar</span>
+                </button>
+                <button class="nav-btn" data-tab="library" id="nav-library">
+                    <i class="fa-solid fa-heart"></i> <span>Favoritos</span>
+                </button>
+                <button class="nav-btn" data-tab="settings" id="nav-settings">
+                    <i class="fa-solid fa-keyboard"></i> <span>Controles</span>
+                </button>
+                <button class="nav-btn" data-tab="help" id="nav-help">
+                    <i class="fa-solid fa-circle-question"></i> <span>Ajuda</span>
+                </button>
+            </nav>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            
+            <!-- ABA INÍCIO (HOME) -->
+            <section class="tab-content active" id="tab-home">
+                <div class="hero-banner">
+                    <div class="hero-text">
+                        <span class="badge">PROJETO EMULATORJS</span>
+                        <h1>Relembre os Clássicos dos Videogames</h1>
+                        <p>Jogue seus títulos favoritos de NES, SNES, Megadrive, GBA e muito mais, direto no navegador. Carregue do seu computador, cole uma URL ou explore repositórios online.</p>
+                        
+                        <!-- Ações Rápidas no Hero -->
+                        <div class="hero-actions">
+                            <button class="btn btn-primary" id="btn-quick-upload">
+                                <i class="fa-solid fa-upload"></i> Upload de ROM
+                            </button>
+                            <button class="btn btn-secondary" id="btn-quick-url">
+                                <i class="fa-solid fa-link"></i> Carregar URL
+                            </button>
+                            <input type="file" id="file-uploader" accept=".zip,.nes,.smc,.sfc,.fig,.gba,.gb,.gbc,.gen,.smd,.md,.bin,.sms,.gg,.z64,.n64,.v64,.nds" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <div class="hero-visual">
+                        <div class="retro-console-card">
+                            <div class="screen-glare"></div>
+                            <div class="console-screen">
+                                <div class="pixel-art-animation">
+                                    <i class="fa-solid fa-ghost ghost-color-1"></i>
+                                    <i class="fa-solid fa-ghost ghost-color-2"></i>
+                                    <i class="fa-solid fa-pacman pacman-yellow"></i>
+                                </div>
+                            </div>
+                            <div class="console-controls">
+                                <div class="dpad">
+                                    <div class="dpad-btn up"></div>
+                                    <div class="dpad-btn left"></div>
+                                    <div class="dpad-btn right"></div>
+                                    <div class="dpad-btn down"></div>
+                                </div>
+                                <div class="console-buttons">
+                                    <div class="action-btn a-btn">A</div>
+                                    <div class="action-btn b-btn">B</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carregar ROM via URL (Modal Interna/Expandível) -->
+                <div class="url-loader-card hidden" id="url-loader-container">
+                    <h3><i class="fa-solid fa-link"></i> Jogar de uma URL</h3>
+                    <p>Cole a URL direta da ROM (ex: http://exemplo.com/rom.zip). O sistema identificará o console pela extensão do arquivo.</p>
+                    <div class="url-input-group">
+                        <input type="url" id="rom-url-input" placeholder="https://exemplo.com/pasta/super_mario.nes">
+                        <select id="rom-url-core">
+                            <option value="auto">Auto-detectar Console</option>
+                            <option value="nes">NES (Nintendinho)</option>
+                            <option value="snes">Super Nintendo (SNES)</option>
+                            <option value="gba">Game Boy Advance (GBA)</option>
+                            <option value="gb">Game Boy (GB)</option>
+                            <option value="gbc">Game Boy Color (GBC)</option>
+                            <option value="segaMD">Sega Genesis / Mega Drive</option>
+                            <option value="segaMS">Sega Master System</option>
+                            <option value="gamegear">Sega Game Gear</option>
+                            <option value="psx">PlayStation 1 (PS1)</option>
+                        </select>
+                        <button class="btn btn-action" id="btn-load-url-rom">Jogar</button>
+                    </div>
+                </div>
+
+                <!-- Seção de Consoles -->
+                <h2 class="section-title"><i class="fa-solid fa-microchip"></i> Escolha o Console</h2>
+                <div class="consoles-grid">
+                    <div class="console-card" data-console="nes" style="--console-color: #ff3366;">
+                        <div class="card-glow"></div>
+                        <div class="console-icon-wrap">
+                            <i class="fa-solid fa-circle"></i>
+                            <span class="console-letter">NES</span>
+                        </div>
+                        <h3>Nintendo (NES)</h3>
+                        <p>8-Bits de pura nostalgia</p>
+                        <span class="explore-tag">Explorar Jogos</span>
+                    </div>
+
+                    <div class="console-card" data-console="snes" style="--console-color: #8a2be2;">
+                        <div class="card-glow"></div>
+                        <div class="console-icon-wrap">
+                            <i class="fa-solid fa-square-envelope"></i>
+                            <span class="console-letter">SNES</span>
+                        </div>
+                        <h3>Super Nintendo</h3>
+                        <p>A era de ouro dos 16-Bits</p>
+                        <span class="explore-tag">Explorar Jogos</span>
+                    </div>
+
+                    <div class="console-card" data-console="gba" style="--console-color: #00dfd8;">
+                        <div class="card-glow"></div>
+                        <div class="console-icon-wrap">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                            <span class="console-letter">GBA</span>
+                        </div>
+                        <h3>Game Boy Advance</h3>
+                        <p>Poderoso clássico de bolso</p>
+                        <span class="explore-tag">Explorar Jogos</span>
+                    </div>
+
+                    <div class="console-card" data-console="segaMD" style="--console-color: #ff9f00;">
+                        <div class="card-glow"></div>
+                        <div class="console-icon-wrap">
+                            <i class="fa-solid fa-compact-disc"></i>
+                            <span class="console-letter">GEN</span>
+                        </div>
+                        <h3>Mega Drive / Genesis</h3>
+                        <p>A velocidade e atitude da Sega</p>
+                        <span class="explore-tag">Explorar Jogos</span>
+                    </div>
+                    
+                    <div class="console-card" data-console="gbc" style="--console-color: #00ff66;">
+                        <div class="card-glow"></div>
+                        <div class="console-icon-wrap">
+                            <i class="fa-solid fa-gamepad"></i>
+                            <span class="console-letter">GBC</span>
+                        </div>
+                        <h3>Game Boy Color</h3>
+                        <p>O console portátil colorido</p>
+                        <span class="explore-tag">Explorar Jogos</span>
+                    </div>
+
+                    <div class="console-card" data-console="psx" style="--console-color: #0070d2;">
+                        <div class="card-glow"></div>
+                        <div class="console-icon-wrap">
+                            <i class="fa-solid fa-gamepad"></i>
+                            <span class="console-letter">PS1</span>
+                        </div>
+                        <h3>PlayStation 1</h3>
+                        <p>A revolução 3D dos 32-Bits</p>
+                        <span class="explore-tag">Explorar Jogos</span>
+                    </div>
+                </div>
+
+                <!-- Seção de Jogos Curados -->
+                <div class="curated-games-section" id="curated-section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="fa-solid fa-fire"></i> Jogos Recomendados - <span id="current-console-title">Todos</span></h2>
+                        <button class="btn btn-sm btn-text" id="btn-show-all-curated" style="display: none;">Ver Todos</button>
+                    </div>
+                    <div class="games-grid" id="curated-games-grid">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA EXPLORAR (ONLINE ROMS) -->
+            <section class="tab-content" id="tab-explore">
+                <div class="explore-header-panel">
+                    <h2><i class="fa-solid fa-globe"></i> Explorar Repositórios Online</h2>
+                    <p>Pesquise diretamente no banco de dados aberto do Internet Archive (archive.org) por ROMs públicas de retro games para carregar temporariamente e jogar.</p>
+                    
+                    <div class="search-form">
+                        <div class="search-input-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="explore-search-input" placeholder="Digite o nome do jogo (ex: Pokémon, Sonic, Zelda)...">
+                        </div>
+                        <select id="explore-console-select" class="search-select">
+                            <option value="snes" selected>Super Nintendo</option>
+                            <option value="nes">NES (Nintendinho)</option>
+                            <option value="gba">Game Boy Advance</option>
+                            <option value="gb-gbc">Game Boy / Color</option>
+                            <option value="sega">Sega Genesis / Game Gear / SMS</option>
+                            <option value="psx">PlayStation 1 (PS1)</option>
+                        </select>
+                        <button class="btn btn-primary btn-search" id="btn-explore-search">
+                            <i class="fa-solid fa-magnifying-glass"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Indicador de Carregamento da Busca -->
+                <div class="loading-search hidden" id="search-loader">
+                    <div class="spinner"></div>
+                    <p>Consultando banco de dados do Archive.org...</p>
+                </div>
+
+                <!-- Resultados da Pesquisa -->
+                <div class="search-results-section hidden" id="search-results-container">
+                    <div class="explore-nav-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                        <h3 class="search-results-title" id="explore-results-title-text" style="margin-bottom: 0;">Catálogo de Jogos</h3>
+                        <div class="catalog-tabs" style="display: flex; gap: 10px;">
+                            <button class="btn btn-secondary btn-sm active" id="tab-catalog-popular" style="padding: 8px 16px;"><i class="fa-solid fa-fire" style="color: var(--accent-cyan);"></i> Populares</button>
+                            <button class="btn btn-secondary btn-sm" id="tab-catalog-all" style="padding: 8px 16px;"><i class="fa-solid fa-list"></i> Todos (A-Z)</button>
+                        </div>
+                    </div>
+                    <div id="catalog-alphabet-bar" class="hidden" style="gap: 6px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center; background: rgba(11, 11, 20, 0.4); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <!-- Letras geradas via JS -->
+                    </div>
+                    <div class="explore-results-grid" id="explore-results-grid">
+                        <!-- Preenchido via JS (Coleções do Archive.org) -->
+                    </div>
+                    <div class="search-more-wrapper" style="display: flex; justify-content: center; margin-top: 30px; margin-bottom: 20px;">
+                        <button class="btn btn-secondary hidden" id="btn-explore-more" style="padding: 12px 30px; font-weight: 600;">
+                            <i class="fa-solid fa-angles-down"></i> Ver Mais Resultados
+                        </button>
+                    </div>
+                </div>
+
+
+            </section>
+
+            <!-- ABA BIBLIOTECA -->
+            <section class="tab-content" id="tab-library">
+                <div class="library-header">
+                    <h2><i class="fa-solid fa-bookmark"></i> Minha Biblioteca</h2>
+                    <p>Gerencie seus favoritos, histórico de jogos e continue jogando de onde parou.</p>
+                </div>
+
+                <!-- Sub-abas da Biblioteca (Visão Geral, Favoritos, Recentes) -->
+                <div class="library-tabs">
+                    <button class="lib-tab-btn active" data-lib-tab="all">
+                        <i class="fa-solid fa-border-all"></i> Visão Geral
+                    </button>
+                    <button class="lib-tab-btn" data-lib-tab="favorites">
+                        <i class="fa-solid fa-heart"></i> Favoritos
+                    </button>
+                    <button class="lib-tab-btn" data-lib-tab="recent">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Recentes
+                    </button>
+                </div>
+
+                <div class="library-controls-bar">
+                    <div class="library-filters">
+                        <button class="lib-filter-btn active" data-console="all">Todos</button>
+                        <button class="lib-filter-btn" data-console="nes">NES</button>
+                        <button class="lib-filter-btn" data-console="snes">SNES</button>
+                        <button class="lib-filter-btn" data-console="gba">GBA</button>
+                        <button class="lib-filter-btn" data-console="segaMD">Mega Drive</button>
+                        <button class="lib-filter-btn" data-console="gbc">GBC</button>
+                        <button class="lib-filter-btn" data-console="gb">Game Boy</button>
+                        <button class="lib-filter-btn" data-console="psx">PS1</button>
+                    </div>
+                    <div class="library-sort-wrapper">
+                        <div class="sort-select-container">
+                            <label for="library-sort"><i class="fa-solid fa-arrow-down-a-z"></i> Ordenar:</label>
+                            <select id="library-sort" class="lib-select">
+                                <option value="default">Data de Acesso</option>
+                                <option value="alphabetical">Nome (A-Z)</option>
+                                <option value="console">Console</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-danger btn-sm hidden" id="btn-clear-history" title="Limpar Histórico de Jogos" style="margin-left: 10px; padding: 6px 12px; font-size: 0.85rem; border-radius: 8px;">
+                            <i class="fa-solid fa-trash-can"></i> Limpar Recentes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Barra de Status do Cache Offline (IndexedDB) -->
+                <div class="library-cache-info" id="library-cache-info-box" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 240, 255, 0.04); border: 1px solid rgba(0, 240, 255, 0.15); padding: 12px 18px; border-radius: 10px; font-size: 0.88rem; color: var(--text-muted);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-hard-drive" style="color: var(--accent-cyan); font-size: 1rem;"></i>
+                        <span><strong>Armazenamento Offline:</strong> <span id="library-cache-status" style="color: var(--text-white);">0 jogos salvos (0.0 MB)</span></span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-clear-rom-cache" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; border-color: rgba(0, 240, 255, 0.3); color: var(--accent-cyan); background: transparent; cursor: pointer; transition: all var(--transition-fast);">
+                        <i class="fa-solid fa-circle-xmark"></i> Limpar Cache de ROMs
+                    </button>
+                </div>
+
+                <!-- Seção de Favoritos -->
+                <div class="library-section" id="section-favorites">
+                    <div class="library-section-header">
+                        <h3><i class="fa-solid fa-heart" style="color: var(--accent-pink);"></i> Favoritos</h3>
+                    </div>
+                    <div class="games-grid" id="favorite-games-grid">
+                        <!-- Preenchido via JS -->
+                    </div>
+                    <div class="empty-state hidden" id="favorites-section-empty">
+                        <i class="fa-solid fa-heart-crack empty-icon"></i>
+                        <h3>Nenhum jogo favoritado</h3>
+                        <p>Clique no ícone de coração nos jogos para salvá-los aqui.</p>
+                    </div>
+                </div>
+
+                <!-- Seção de Recentes -->
+                <div class="library-section" id="section-recent">
+                    <div class="library-section-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-purple);"></i> Jogados Recentemente</h3>
+                    </div>
+                    <div class="games-grid" id="recent-games-grid">
+                        <!-- Preenchido via JS -->
+                    </div>
+                    <div class="empty-state hidden" id="recent-section-empty">
+                        <i class="fa-solid fa-clock empty-icon"></i>
+                        <h3>Nenhum jogo jogado recentemente</h3>
+                        <p>Os jogos que você abrir aparecerão aqui para você continuar de onde parou.</p>
+                    </div>
+                </div>
+
+                <!-- Empty State Geral (se tudo estiver vazio) -->
+                <div class="empty-state hidden" id="library-empty-state">
+                    <i class="fa-solid fa-bookmark-slash empty-icon"></i>
+                    <h3>Sua biblioteca está vazia</h3>
+                    <p>Explore o catálogo de jogos ou faça busca de títulos para começar a jogar!</p>
+                    <button class="btn btn-secondary" id="btn-goto-home-empty">Ver Jogos Recomendados</button>
+                </div>
+            </section>
+
+            <!-- ABA AJUDA -->
+            <section class="tab-content" id="tab-help">
+                <div class="help-grid">
+                    <div class="help-card card-full" style="border-color: rgba(255,159,0,0.25);">
+                        <h2 style="color: #ff9f00;"><i class="fa-solid fa-scale-balanced"></i> Aviso Legal & Privacidade</h2>
+                        <p><strong style="color: var(--text-white);">Direitos Autorais de ROMs:</strong> O RetroPlay Hub é uma ferramenta de emulação de uso pessoal. As ROMs de jogos são protegidas por direitos autorais e pertencem aos seus respectivos detentores. O usuário é o único responsável por garantir que possui o direito legal de usar qualquer ROM carregada nesta plataforma. O site não hospeda, distribui nem endossa a pirataria de jogos.</p>
+                        <p><strong style="color: var(--text-white);">Dados na sua máquina:</strong> Todos os seus dados (favoritos, configurações de controle, volume) são armazenados <strong>exclusivamente no seu navegador</strong> via <code>localStorage</code>. Nenhuma informação pessoal é enviada a servidores externos.</p>
+                        <p><strong style="color: var(--text-white);">Serviços de terceiros utilizados:</strong> Archive.org (busca e download de ROMs públicas), CDN do EmulatorJS, Google Fonts e FontAwesome — cada um sujeito às suas próprias políticas de privacidade.</p>
+                        <p><strong style="color: var(--text-white);">Cookies:</strong> Este site não utiliza cookies de rastreamento. O <code>localStorage</code> é usado apenas para salvar preferências locais.</p>
+                    </div>
+                    <div class="help-card card-full">
+                        <h2><i class="fa-solid fa-circle-question"></i> Como Funciona o RetroPlay?</h2>
+                        <p>O RetroPlay é um hub web desenvolvido sobre o projeto de código aberto <strong>EmulatorJS</strong>. O processamento da emulação ocorre 100% no seu navegador usando WebAssembly, o que significa que o jogo roda localmente no seu computador sem necessidade de servidores poderosos.</p>
+                    </div>
+
+                    <div class="help-card">
+                        <h3><i class="fa-solid fa-keyboard"></i> Controles Padrão (Teclado)</h3>
+                        <table class="help-table">
+                            <thead>
+                                <tr>
+                                    <th>Ação</th>
+                                    <th>Botão no Teclado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>D-Pad (Movimentação)</strong></td>
+                                    <td>Setas direcionais (← ↑ ↓ →)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Botão A</strong></td>
+                                    <td>Tecla <code>X</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Botão B</strong></td>
+                                    <td>Tecla <code>Z</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Botão X</strong></td>
+                                    <td>Tecla <code>S</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Botão Y</strong></td>
+                                    <td>Tecla <code>A</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>L / R (Ombros)</strong></td>
+                                    <td>Teclas <code>Q</code> / <code>W</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Select</strong></td>
+                                    <td>Tecla <code>Shift</code> (Esquerdo)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Start</strong></td>
+                                    <td>Tecla <code>Enter</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="help-card">
+                        <h3><i class="fa-solid fa-gamepad"></i> Gamepads e Remapeamento</h3>
+                        <p><strong>Conexão Automática:</strong> Conecte qualquer controle USB ou Bluetooth (Xbox, PlayStation, etc.). O emulador irá reconhecê-lo instantaneamente.</p>
+                        <p><strong>Salvar Controles por Console (Sem atrito):</strong></p>
+                        <ol>
+                            <li>Durante o jogo, pressione a tecla <code>ESC</code> / <code>F1</code> ou clique no botão azul do menu no canto inferior esquerdo.</li>
+                            <li>Navegue até <strong>Controls > Port 1 Controls</strong> e remapeie os botões conforme sua preferência.</li>
+                            <li><strong>PASSO CRÍTICO:</strong> Volte um nível e selecione **"Save Core Remap File"** (Salvar Remapeamento do Núcleo).</li>
+                        </ol>
+                        <p>Isso associa o remapeamento ao console inteiro (e não apenas à ROM atual), aplicando automaticamente a sua configuração a todos os jogos deste mesmo console em qualquer sessão!</p>
+                    </div>
+
+                    <div class="help-card">
+                        <h3><i class="fa-solid fa-floppy-disk"></i> Salvar e Carregar Estado (Save States)</h3>
+                        <p>Você pode salvar seu progresso em qualquer ponto do jogo, mesmo se o jogo original não suportasse isso!</p>
+                        <p><strong>Passo a Passo:</strong></p>
+                        <ul>
+                            <li><strong>Salvar:</strong> Abra o menu interno do emulador (tecla <code>ESC</code>) e escolha a opção <strong>Save State</strong>. Você também pode salvar o arquivo de status para o seu computador.</li>
+                            <li><strong>Carregar:</strong> Abra o menu interno do emulador e selecione <strong>Load State</strong> para continuar de onde parou.</li>
+                        </ul>
+                    </div>
+
+                    <div class="help-card">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Dicas e Resolução de Problemas</h3>
+                        <ul>
+                            <li><strong>Desempenho:</strong> Se o jogo estiver lento, certifique-se de que a Aceleração de Hardware está ativada nas configurações do seu navegador.</li>
+                            <li><strong>Arquivos Suportados:</strong> O emulador suporta ROMs nos formatos descompactados (como `.nes`, `.smc`, `.gba`) e também arquivos compactados `.zip`.</li>
+                            <li><strong>CORS e Downloads:</strong> ROMs hospedadas online precisam de cabeçalhos CORS válidos. Caso receba um erro de rede, tente baixar a ROM e usar a opção <strong>Upload de ROM</strong> para carregar localmente.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABA CONTROLES (SETTINGS) -->
+            <section class="tab-content" id="tab-settings">
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h2><i class="fa-solid fa-keyboard"></i> Mapeamento de Controles</h2>
+                        <p>Configure teclas personalizadas do teclado para jogar. Escolha um console específico ou aplique globalmente para todos os jogos. Clique em um botão e pressione a nova tecla no seu teclado físico.</p>
+                        
+                        <div class="settings-console-selector-wrapper" style="margin-bottom: 25px; display: flex; align-items: center; gap: 15px; background: rgba(11, 11, 20, 0.4); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <label for="settings-console-select" style="font-weight: 600; color: var(--text-muted); font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin: 0;"><i class="fa-solid fa-gamepad" style="color: var(--accent-pink);"></i> Console para Configurar:</label>
+                            <select id="settings-console-select" class="search-select" style="margin: 0; min-width: 200px; padding: 8px 12px; background: #131324; border: 1px solid var(--border-color); color: #fff; border-radius: 6px; outline: none; cursor: pointer;">
+                                <option value="global" selected>Global (Todos os Consoles)</option>
+                                <option value="nes">NES (Nintendinho)</option>
+                                <option value="snes">Super Nintendo</option>
+                                <option value="gba">Game Boy Advance</option>
+                                <option value="segaMD">Mega Drive</option>
+                                <option value="gbc">Game Boy Color</option>
+                                <option value="gb">Game Boy Classic</option>
+                                <option value="psx">PlayStation 1</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-groups-container">
+                            <div class="control-group">
+                                <h3><i class="fa-solid fa-arrows-up-down-left-right"></i> Direcional (D-Pad)</h3>
+                                <div class="control-row">
+                                    <span class="control-label">D-Pad Cima</span>
+                                    <button class="btn-control-bind" id="btn-bind-4" data-button-id="4">ArrowUp</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">D-Pad Baixo</span>
+                                    <button class="btn-control-bind" id="btn-bind-5" data-button-id="5">ArrowDown</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">D-Pad Esquerda</span>
+                                    <button class="btn-control-bind" id="btn-bind-6" data-button-id="6">ArrowLeft</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">D-Pad Direita</span>
+                                    <button class="btn-control-bind" id="btn-bind-7" data-button-id="7">ArrowRight</button>
+                                </div>
+                            </div>
+                            
+                            <div class="control-group">
+                                <h3><i class="fa-solid fa-circle-dot"></i> Botões de Ação</h3>
+                                <div class="control-row">
+                                    <span class="control-label">Botão A (Confirmar)</span>
+                                    <button class="btn-control-bind" id="btn-bind-8" data-button-id="8">x</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Botão B (Voltar)</span>
+                                    <button class="btn-control-bind" id="btn-bind-0" data-button-id="0">z</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Botão X</span>
+                                    <button class="btn-control-bind" id="btn-bind-9" data-button-id="9">s</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Botão Y</span>
+                                    <button class="btn-control-bind" id="btn-bind-1" data-button-id="1">a</button>
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <h3><i class="fa-solid fa-sliders"></i> Menus & Ombros</h3>
+                                <div class="control-row">
+                                    <span class="control-label">Ombro Esquerdo (L)</span>
+                                    <button class="btn-control-bind" id="btn-bind-10" data-button-id="10">q</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Ombro Direito (R)</span>
+                                    <button class="btn-control-bind" id="btn-bind-11" data-button-id="11">w</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Select</span>
+                                    <button class="btn-control-bind" id="btn-bind-2" data-button-id="2">Shift</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Start</span>
+                                    <button class="btn-control-bind" id="btn-bind-3" data-button-id="3">Enter</button>
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <h3><i class="fa-solid fa-gears"></i> Funções do Emulador</h3>
+                                <div class="control-row">
+                                    <span class="control-label">Salvar Estado Rápido</span>
+                                    <button class="btn-control-bind" id="btn-bind-100" data-button-id="100">1</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Carregar Estado Rápido</span>
+                                    <button class="btn-control-bind" id="btn-bind-101" data-button-id="101">2</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Trocar Slot de Save</span>
+                                    <button class="btn-control-bind" id="btn-bind-102" data-button-id="102">3</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Avanço Rápido</span>
+                                    <button class="btn-control-bind" id="btn-bind-103" data-button-id="103">4</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Câmera Lenta</span>
+                                    <button class="btn-control-bind" id="btn-bind-104" data-button-id="104">5</button>
+                                </div>
+                                <div class="control-row">
+                                    <span class="control-label">Retroceder (Rewind)</span>
+                                    <button class="btn-control-bind" id="btn-bind-105" data-button-id="105">6</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" id="btn-restore-controls">
+                                <i class="fa-solid fa-rotate-left"></i> Restaurar Padrões
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- TELA DO PLAYER (EMULADOR TELA CHEIA OVERLAY) -->
+    <div class="player-overlay" id="player-overlay">
+        <!-- Barra superior de controle do Player -->
+        <div class="player-top-bar" id="player-top-bar">
+            <button class="btn-player-control" id="btn-player-back" title="Voltar ao Hub">
+                <i class="fa-solid fa-arrow-left"></i> <span>Sair</span>
+            </button>
+            <div class="player-game-info">
+                <span class="player-game-title" id="player-game-title">Nome do Jogo</span>
+                <span class="player-game-console" id="player-game-console">Console</span>
+            </div>
+            <div class="player-right-actions">
+                <button class="btn-player-control" id="btn-player-fav" title="Favoritar Jogo">
+                    <i class="fa-regular fa-heart"></i>
+                </button>
+                <button class="btn-player-control" id="btn-player-fullscreen" title="Tela Cheia">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Container do Iframe do Emulador -->
+        <div class="iframe-wrapper">
+            <iframe id="emulator-iframe" src="about:blank" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- Visualizador de Arquivos da Coleção Selecionada (Modal Overlay) -->
+    <div class="collection-modal-overlay hidden" id="collection-files-container">
+        <div class="collection-files-card">
+            <!-- Botão Fechar no canto superior -->
+            <button class="btn btn-sm btn-icon-only close-modal-corner" id="btn-close-collection-files" aria-label="Fechar modal"><i class="fa-solid fa-xmark"></i></button>
+
+            <!-- Cabeçalho Hero com Imagem Gigante e Título -->
+            <div class="collection-modal-hero">
+                <img id="modal-game-boxart" src="" alt="Capa do Jogo" class="modal-boxart-img" style="display: none;">
+                <div class="modal-game-meta">
+                    <h3 id="modal-game-title">-</h3>
+                    <span id="modal-game-console" class="game-card-badge" style="font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; font-weight: 700; display: inline-block;">-</span>
+                </div>
+            </div>
+
+            <!-- Corpo: Campo de Busca e Tabela de Arquivos -->
+            <div class="collection-modal-main">
+                <p class="collection-desc" style="text-align: center; margin-bottom: 15px;">Escolha a ROM correspondente para: <span id="selected-collection-title" style="color: var(--accent-cyan); font-weight: 600;">Coleção</span></p>
+                
+                <div class="files-search-box">
+                    <input type="text" id="filter-files-input" placeholder="Filtrar arquivos na lista...">
+                </div>
+
+                <div class="files-list-wrapper">
+                    <table class="files-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Arquivo</th>
+                                <th>Tamanho</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="collection-files-list">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Seleção de Console para arquivos ZIP -->
+    <div class="zip-modal-overlay hidden" id="zip-modal">
+        <div class="zip-modal-card">
+            <div class="zip-modal-header">
+                <h3><i class="fa-solid fa-file-zipper"></i> Arquivo ZIP Detectado</h3>
+                <button class="btn-close-zip-modal" id="btn-close-zip-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p>Selecione o console correspondente a este arquivo zipado para carregar o emulador correto:</p>
+            <div class="zip-console-options">
+                <button class="btn-zip-option" data-core="nes" style="--console-color: #ff3366;">
+                    <i class="fa-solid fa-gamepad"></i> NES (Nintendinho)
+                </button>
+                <button class="btn-zip-option" data-core="snes" style="--console-color: #8a2be2;">
+                    <i class="fa-solid fa-gamepad"></i> Super Nintendo
+                </button>
+                <button class="btn-zip-option" data-core="gba" style="--console-color: #00dfd8;">
+                    <i class="fa-solid fa-gamepad"></i> Game Boy Advance
+                </button>
+                <button class="btn-zip-option" data-core="segaMD" style="--console-color: #ff9f00;">
+                    <i class="fa-solid fa-gamepad"></i> Mega Drive
+                </button>
+                <button class="btn-zip-option" data-core="gbc" style="--console-color: #00ff66;">
+                    <i class="fa-solid fa-gamepad"></i> Game Boy Color
+                </button>
+                <button class="btn-zip-option" data-core="gb" style="--console-color: #ffd700;">
+                    <i class="fa-solid fa-gamepad"></i> Game Boy Classic
+                </button>
+                <button class="btn-zip-option" data-core="psx" style="--console-color: #0070d2;">
+                    <i class="fa-solid fa-gamepad"></i> PlayStation 1
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay de Progresso de Download -->
+    <div class="download-overlay hidden" id="download-overlay">
+        <div class="download-card">
+            <div class="download-icon-row">
+                <i class="fa-solid fa-download"></i>
+                <span style="font-size:0.9rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Baixando ROM</span>
+            </div>
+            <div class="download-game-name" id="download-game-name">Aguarde...</div>
+            <div class="download-bar-wrap">
+                <div class="download-bar-fill" id="download-bar-fill"></div>
+            </div>
+            <p class="download-status-text" id="download-status-text">Conectando ao servidor...</p>
+            <button class="btn-cancel-download" id="btn-cancel-download">
+                <i class="fa-solid fa-xmark"></i> Cancelar
+            </button>
+        </div>
+    </div>
+
+    <!-- Banner de Privacidade (primeira visita) -->
+    <div class="privacy-banner hidden" id="privacy-banner">
+        <div class="privacy-banner-content">
+            <i class="fa-solid fa-shield-halved"></i>
+            <p>Este site não coleta dados pessoais. Favoritos e preferências ficam <strong>somente no seu navegador</strong> (localStorage). ROMs são de responsabilidade do usuário. <button class="btn-link-inline" id="btn-privacy-learn-more">Saiba mais</button></p>
+        </div>
+        <button class="privacy-banner-close" id="btn-privacy-ok" aria-label="Fechar aviso">
+            <i class="fa-solid fa-xmark"></i> Entendi
+        </button>
+    </div>
+
+    <!-- Modal de Erro -->
+    <div class="error-modal-overlay hidden" id="error-modal">
+        <div class="error-modal-card">
+            <div class="error-modal-header">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <h3 id="error-modal-title">Erro</h3>
+            </div>
+            <p id="error-modal-body"></p>
+            <button class="btn btn-secondary" id="btn-error-close">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Script Principal da Aplicação -->
+    <script src="app.js"></script>
+</body>
+</html>
