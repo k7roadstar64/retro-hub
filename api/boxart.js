@@ -31,9 +31,12 @@ async function searchDDG(q) {
 }
 
 // --- Provedor 2: Bing Images (scraping do HTML; tolera IPs de datacenter) ---
+// Usa o endpoint /images/async (o mesmo que o scroll infinito do Bing chama) porque a página
+// normal /images/search entrega um HTML estático com widgets genéricos (ex: "aloe vera gel")
+// não relacionados à busca — a grade real de resultados só é montada em runtime via JS.
 async function searchBing(q) {
     const html = await fetchWithTimeout(
-        `https://www.bing.com/images/search?q=${encodeURIComponent(q)}&first=1&adlt=off`,
+        `https://www.bing.com/images/async?q=${encodeURIComponent(q)}&first=0&count=15&relp=0&layout=RowBased&mmasync=1`,
         { headers: HEADERS }
     ).then(r => r.text());
 

@@ -725,9 +725,18 @@ function getGameTitleScreenUrl(boxartName, consoleType) {
     return url ? url.replace('/Named_Boxarts/', '/Named_Titles/') : null;
 }
 
-// Retorna URL da serverless function /api/boxart que faz o scraping do DDG server-side
+// Nomes de console legíveis para a query de busca — códigos internos como "segaMD"/"psx"
+// confundem os buscadores de imagem e trazem resultados aleatórios/errados
+const CONSOLE_SEARCH_NAMES = {
+    nes: 'NES', snes: 'SNES', gba: 'Game Boy Advance', gb: 'Game Boy', gbc: 'Game Boy Color',
+    segaMD: 'Sega Genesis Mega Drive', segaMS: 'Sega Master System', gamegear: 'Sega Game Gear',
+    psx: 'PS1 PlayStation', n64: 'Nintendo 64', nds: 'Nintendo DS'
+};
+
+// Retorna URL da serverless function /api/boxart que faz o scraping (DDG/Bing/Wikipedia) server-side
 function getBoxartDDGUrl(title, consoleType) {
-    const q = encodeURIComponent(`${title}${consoleType ? ' ' + consoleType : ''} game boxart`);
+    const consoleName = CONSOLE_SEARCH_NAMES[consoleType] || consoleType || '';
+    const q = encodeURIComponent(`"${title}" ${consoleName} game box art cover`.replace(/\s+/g, ' ').trim());
     return `/api/boxart?q=${q}`;
 }
 
