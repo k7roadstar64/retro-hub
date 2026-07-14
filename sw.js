@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'retroplay-v1';
+const CACHE = 'retroplay-v2';
 const STATIC = ['/', '/index.html', '/app.js', '/style.css', '/player.html', '/player.js', '/player.css'];
 
 self.addEventListener('install', event => {

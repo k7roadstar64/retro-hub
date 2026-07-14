@@ -1067,8 +1067,8 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     width: 92%;
-    max-width: 650px;
-    max-height: 88vh;
+    max-width: 900px;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 240, 255, 0.15);
@@ -1092,49 +1092,51 @@ html, body {
     color: var(--accent-cyan);
 }
 
+/* Cabeçalho compacto: capa pequena à esquerda, título ao lado — prioriza espaço para a lista de ROMs */
 .collection-modal-hero {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 35px 30px 20px 30px;
+    gap: 18px;
+    padding: 18px 60px 18px 25px; /* padding direito maior para não ficar sob o botão de fechar */
     background: rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    text-align: center;
+    text-align: left;
     flex-shrink: 0;
 }
 
 .modal-boxart-img {
-    width: 100%;
-    max-width: 320px; /* Capa bem visível e grande */
+    width: 92px;
     aspect-ratio: 1/1;
     object-fit: cover;
-    border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 240, 255, 0.25);
-    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 18px rgba(0, 240, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
     transition: transform 0.3s ease;
 }
 
 @media (max-width: 768px) {
     .modal-boxart-img {
-        max-width: 220px;
+        width: 72px;
     }
 }
 
 .modal-boxart-img:hover {
-    transform: scale(1.02);
+    transform: scale(1.05);
 }
 
 .modal-game-meta {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     width: 100%;
+    min-width: 0;
 }
 
 .modal-game-meta h3 {
-    font-size: 1.55rem;
+    font-size: 1.25rem;
     color: #fff;
     margin: 0;
     font-weight: 800;
@@ -1145,17 +1147,10 @@ html, body {
 
 .collection-modal-main {
     flex-grow: 1;
-    padding: 25px 30px 30px 30px;
+    padding: 18px 25px 25px 25px;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-    .collection-modal-main {
-        padding: 20px;
-    }
-}
 }
 
 @media (max-width: 768px) {
@@ -1205,7 +1200,7 @@ html, body {
 .files-list-wrapper {
     flex: 1;
     min-height: 0;
-    max-height: 50vh;
+    max-height: 62vh;
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: 10px;

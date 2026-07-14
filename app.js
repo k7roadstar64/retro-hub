@@ -237,6 +237,73 @@ function loadStoredRecentGames() {
     }
 }
 
+// --- Ranking de ROMs: escolhas do usuário (localStorage) + heurística de qualidade ---
+let romPickCounts = loadRomPickCounts();
+function loadRomPickCounts() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem('retroplay_rom_picks') || '{}');
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+    } catch {
+        localStorage.removeItem('retroplay_rom_picks');
+        return {};
+    }
+}
+
+function getRomPickCount(fileName) {
+    return romPickCounts[String(fileName).toLowerCase().trim()] || 0;
+}
+
+function bumpRomPickCount(fileName) {
+    const key = String(fileName).toLowerCase().trim();
+    romPickCounts[key] = (romPickCounts[key] || 0) + 1;
+    // Mantém o mapa limitado às 500 ROMs mais escolhidas
+    const keys = Object.keys(romPickCounts);
+    if (keys.length > 500) {
+        keys.sort((a, b) => romPickCounts[a] - romPickCounts[b]);
+        keys.slice(0, keys.length - 500).forEach(k => delete romPickCounts[k]);
+    }
+    try { localStorage.setItem('retroplay_rom_picks', JSON.stringify(romPickCounts)); } catch { /* storage cheio — ranking segue só em memória */ }
+}
+
+// Pontua um arquivo de ROM: escolhas anteriores do usuário dominam; depois similaridade
+// com o título buscado, região, qualidade do dump (convenções No-Intro/GoodTools) e
+// popularidade do item no Archive.org (downloads).
+function scoreRomFile(file, gameTitle) {
+    const name = String(file.name).toLowerCase();
+    let score = 0;
+
+    score += getRomPickCount(file.name) * 200;
+
+    const stopWords = ['the', 'of', 'a', 'and', 'de', 'do', 'da'];
+    const tokens = String(gameTitle || '').toLowerCase()
+        .replace(/[^a-z0-9 ]+/g, ' ')
+        .split(/\s+/)
+        .filter(t => t && !stopWords.includes(t));
+    if (tokens.length) {
+        const hits = tokens.filter(t => name.includes(t)).length;
+        score += (hits / tokens.length) * 60;
+    }
+
+    // Região sempre vem entre parênteses ("(USA)", "(Japan, USA)", "(World)") — sem
+    // os parênteses, títulos como "Super Mario World" ganhariam bônus indevido
+    if (/\([^)]*\b(usa|world)\b[^)]*\)|\(u\)/.test(name)) score += 40;
+    else if (/\([^)]*\b(brazil|brasil)\b[^)]*\)/.test(name)) score += 32;
+    else if (/\([^)]*\beurope\b[^)]*\)|\(e\)/.test(name)) score += 25;
+
+    if (name.includes('[!]')) score += 20;               // dump verificado (GoodTools)
+    if (/\(rev\s*[0-9a-z]\)/.test(name)) score += 5;     // revisão mais recente do jogo
+
+    if (/\b(beta|proto|prototype|sample|demo|kiosk)\b/.test(name)) score -= 40;
+    if (/\[b\d*\]/.test(name)) score -= 50;              // bad dump
+    if (/\[h\d*\]|\[t\d*\]|\bhack\b|\btrainer\b/.test(name)) score -= 30;
+    if (/\(pirate\)|\(unl\)/.test(name)) score -= 15;
+    if (/\[o\d*\]/.test(name)) score -= 10;              // overdump
+
+    if (file.downloads) score += Math.min(15, Math.log10(Number(file.downloads) + 1) * 3);
+
+    return score;
+}
+
 function addToRecentGames(game) {
     if (!game || !game.romUrl || game.romUrl.startsWith('blob:')) return;
 
@@ -721,6 +788,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initParticles();
     renderCuratedGames();
+    loadTopGamesPool();
+    document.getElementById('btn-shuffle-curated')?.addEventListener('click', () => {
+        curatedRotationNonce++;
+        renderCuratedGames();
+    });
     initConsolesFilter();
     initLoaders();
     initArchiveSearch();
@@ -849,21 +921,92 @@ function initConsolesFilter() {
     });
 }
 
+// Pool de recomendados: top100.json (carregado async) com CURATED_GAMES como fallback
+let topGamesPool = null;
+let curatedRotationNonce = 0; // incrementado pelo botão "Girar" para reembaralhar sob demanda
+
+async function loadTopGamesPool() {
+    try {
+        const res = await fetch('top100.json');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+            topGamesPool = list;
+            renderCuratedGames();
+        }
+    } catch (err) {
+        console.warn('top100.json indisponível, usando lista curada embutida:', err.message);
+    }
+}
+
+// PRNG determinístico (mulberry32) — semeado pela data para a seleção rotacionar diariamente
+function mulberry32(seed) {
+    return function () {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function seededShuffle(arr, rand) {
+    const copy = arr.slice();
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+const CURATED_PICK_COUNT = 12;
+
+function pickRotatingGames(pool) {
+    const now = new Date();
+    const daySeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    const rand = mulberry32(daySeed + curatedRotationNonce * 7919);
+
+    if (currentConsoleFilter !== 'all' || pool.length <= CURATED_PICK_COUNT) {
+        return seededShuffle(pool, rand).slice(0, CURATED_PICK_COUNT);
+    }
+
+    // Filtro "Todos": round-robin entre consoles para garantir variedade na grade
+    const byConsole = {};
+    pool.forEach(g => { (byConsole[g.console] = byConsole[g.console] || []).push(g); });
+    const groups = seededShuffle(Object.values(byConsole).map(g => seededShuffle(g, rand)), rand);
+    const picks = [];
+    let idx = 0;
+    while (picks.length < CURATED_PICK_COUNT) {
+        let added = false;
+        for (const group of groups) {
+            if (idx < group.length) {
+                picks.push(group[idx]);
+                added = true;
+                if (picks.length >= CURATED_PICK_COUNT) break;
+            }
+        }
+        if (!added) break;
+        idx++;
+    }
+    return picks;
+}
+
 function renderCuratedGames() {
     const grid = document.getElementById('curated-games-grid');
     grid.innerHTML = '';
 
-    // Filtrar jogos
-    const filteredGames = CURATED_GAMES.filter(game => {
-        return currentConsoleFilter === 'all' || game.console === currentConsoleFilter;
+    // Filtrar jogos (chip GBC da home agrupa GB + GBC)
+    const pool = (topGamesPool || CURATED_GAMES).filter(game => {
+        if (currentConsoleFilter === 'all') return true;
+        if (currentConsoleFilter === 'gbc') return game.console === 'gbc' || game.console === 'gb';
+        return game.console === currentConsoleFilter;
     });
 
-    if (filteredGames.length === 0) {
+    if (pool.length === 0) {
         grid.innerHTML = '<p style="color: var(--text-muted); grid-column: span 4; text-align: center; padding: 20px;">Nenhum jogo recomendado disponível para este console.</p>';
         return;
     }
 
-    filteredGames.forEach(game => {
+    pickRotatingGames(pool).forEach(game => {
         const card = createGameCard(game);
         grid.appendChild(card);
     });
@@ -888,7 +1031,9 @@ function createGameCard(game, { playDirect = false } = {}) {
     // Buscar capa oficial: usa boxartName (com região) se disponível, senão deriva do título
     const boxartUrl = game.thumbUrl || getGameBoxartUrl(game.boxartName || game.title, game.console);
 
-    const isFav = favorites.some(f => f.romUrl === game.romUrl);
+    // Entradas do top100.json não têm romUrl (o clique busca a ROM) — sem romUrl não há como favoritar
+    const canFav = typeof game.romUrl === 'string' && game.romUrl.length > 0;
+    const isFav = canFav && favorites.some(f => f.romUrl === game.romUrl);
 
     const eTitle = escapeHtml(game.title);
     const eConsole = escapeHtml(game.console.toUpperCase());
@@ -901,9 +1046,9 @@ function createGameCard(game, { playDirect = false } = {}) {
     card.innerHTML = `
         <div class="game-thumbnail-wrapper">
             <span class="game-card-badge" style="background-color: ${badgeColor}">${eConsole}</span>
-            <button class="btn-card-fav ${isFav ? 'active' : ''}" title="${isFav ? 'Remover dos favoritos' : 'Favoritar'}">
+            ${canFav ? `<button class="btn-card-fav ${isFav ? 'active' : ''}" title="${isFav ? 'Remover dos favoritos' : 'Favoritar'}">
                 <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
-            </button>
+            </button>` : ''}
             <img alt="${eTitle}" class="game-thumbnail">
             <div class="game-fallback-thumb" style="display: none;">
                 <i class="fa-solid fa-gamepad"></i>
@@ -937,9 +1082,9 @@ function createGameCard(game, { playDirect = false } = {}) {
         );
     }
 
-    // Botão de favorito no card
+    // Botão de favorito no card (só existe quando o jogo tem romUrl)
     const favBtn = card.querySelector('.btn-card-fav');
-    favBtn.addEventListener('click', (e) => {
+    if (favBtn) favBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const idx = favorites.findIndex(f => f.romUrl === game.romUrl);
         if (idx === -1) {
@@ -2326,7 +2471,7 @@ function initArchiveSearch() {
         try {
             // 1. Busca exata por título
             let archiveQuery = `title:("${game.title}") AND mediatype:software` + (archiveConsoleFilters[game.console] || '');
-            let searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(archiveQuery)}&fl[]=identifier&fl[]=title&fl[]=description&rows=15&output=json`;
+            let searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(archiveQuery)}&fl[]=identifier&fl[]=title&fl[]=description&fl[]=downloads&rows=15&output=json`;
 
             let response = await fetch(searchUrl);
             let data = await response.json();
@@ -2336,7 +2481,7 @@ function initArchiveSearch() {
             if (rawItems.length === 0) {
                 updateModalStatus('Tentando busca expandida…');
                 archiveQuery = `"${game.title}" AND mediatype:software` + (archiveConsoleFilters[game.console] || '');
-                searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(archiveQuery)}&fl[]=identifier&fl[]=title&fl[]=description&rows=15&output=json`;
+                searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(archiveQuery)}&fl[]=identifier&fl[]=title&fl[]=description&fl[]=downloads&rows=15&output=json`;
                 response = await fetch(searchUrl);
                 data = await response.json();
                 rawItems = data.response.docs || [];
@@ -2407,7 +2552,8 @@ function initArchiveSearch() {
                         name: file.name,
                         size: file.size,
                         identifier: item.identifier,
-                        collectionTitle: item.title
+                        collectionTitle: item.title,
+                        downloads: item.downloads || 0
                     });
                 });
             }
@@ -2435,14 +2581,23 @@ function initArchiveSearch() {
             return;
         }
 
-        filtered.forEach(file => {
+        // Ordena por qualidade estimada: escolhas anteriores do usuário > similaridade
+        // com o título > região/dump > popularidade do item no Archive.org
+        const gameTitle = fileTitle ? fileTitle.innerText : '';
+        const ranked = filtered
+            .map(file => ({ file, score: scoreRomFile(file, gameTitle) }))
+            .sort((a, b) => b.score - a.score || a.file.name.localeCompare(b.file.name))
+            .map(r => r.file);
+
+        ranked.forEach(file => {
             const tr = document.createElement('tr');
 
             const sizeMB = file.size ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : 'Desconhecido';
             const romUrl = `https://archive.org/download/${encodeURIComponent(file.identifier)}/${encodeURIComponent(file.name)}`;
+            const pickedBefore = getRomPickCount(file.name) > 0;
 
             tr.innerHTML = `
-                <td>${escapeHtml(file.name)}</td>
+                <td>${pickedBefore ? '<i class="fa-solid fa-star" style="color:#ffd700;margin-right:6px;" title="Você já escolheu esta ROM antes"></i>' : ''}${escapeHtml(file.name)}</td>
                 <td>${escapeHtml(sizeMB)}</td>
                 <td>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -2459,6 +2614,9 @@ function initArchiveSearch() {
             tr.querySelector('.btn-play-file').addEventListener('click', () => {
                 // Não fechamos o fileContainer aqui, permitindo que o usuário continue navegando se quiser
                 // O emulador roda por cima ou em outra camada, não conflitando com a visibilidade do modal.
+
+                // Registra a escolha — ROMs que o usuário escolhe com frequência sobem no ranking
+                bumpRomPickCount(file.name);
 
                 const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
                 let core = getCoreFromExtension(ext);
