@@ -1045,8 +1045,17 @@ async function initPlayer() {
 
         // Escutar mensagens vindas do topo do player (RetroHub overlay)
         window.addEventListener('message', (ev) => {
-            if (ev.data && ev.data.type === 'retroplay_open_saves') {
+            if (!ev.data) return;
+            if (ev.data.type === 'retroplay_open_saves') {
                 openSaveModal();
+            } else if (ev.data.type === 'retroplay_forward_key') {
+                if (ev.data.shiftKey && (ev.data.key === 'F' || ev.data.key === 'f' || ev.data.key === 'F4' || ev.data.key === 'F2')) {
+                    openSaveModal();
+                } else if (ev.data.key === 'F2') {
+                    performQuickSave(currentSlot);
+                } else if (ev.data.key === 'F4') {
+                    performQuickLoad(currentSlot);
+                }
             }
         });
 

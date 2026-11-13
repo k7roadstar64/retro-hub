@@ -824,6 +824,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Encaminhar atalhos de teclado da janela principal (como Shift+F, Shift+F4) para o iframe
+    window.addEventListener('keydown', (e) => {
+        if (!document.getElementById('player-overlay').classList.contains('active')) return;
+        if ((e.shiftKey && (e.key === 'F' || e.key === 'f' || e.key === 'F4' || e.key === 'F2')) || e.key === 'F2' || e.key === 'F4') {
+            const iframe = document.getElementById('emulator-iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'retroplay_forward_key',
+                    key: e.key,
+                    code: e.code,
+                    keyCode: e.keyCode,
+                    shiftKey: e.shiftKey
+                }, '*');
+            }
+        }
+    });
+
     // Ajustar overlay se pressionar ESC
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && document.getElementById('player-overlay').classList.contains('active')) {
