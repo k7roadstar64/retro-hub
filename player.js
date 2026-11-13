@@ -864,7 +864,7 @@ async function initPlayer() {
                 return;
             }
 
-            // Atalhos legados F2 / F4
+            // Atalhos legados F2 / F4 e Shift+F / Shift+F4 para abrir modal de saves
             if (e.key === 'F2') {
                 e.preventDefault();
                 if (!e.repeat) {
@@ -882,6 +882,11 @@ async function initPlayer() {
                     } else {
                         performQuickLoad(currentSlot);
                     }
+                }
+            } else if (e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+                e.preventDefault();
+                if (!e.repeat) {
+                    openSaveModal();
                 }
             }
         }, true);
@@ -939,10 +944,9 @@ async function initPlayer() {
 
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'storage-btn-toggle';
-        toggleBtn.title = 'Gerenciar saves salvos no navegador';
+        toggleBtn.title = 'Saves no Navegador (Shift+F / Shift+F4)';
         toggleBtn.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-            <span>Saves</span>
         `;
         document.body.appendChild(toggleBtn);
 
@@ -1038,6 +1042,13 @@ async function initPlayer() {
         };
 
         window.retroplay_openSaveModal = openSaveModal;
+
+        // Escutar mensagens vindas do topo do player (RetroHub overlay)
+        window.addEventListener('message', (ev) => {
+            if (ev.data && ev.data.type === 'retroplay_open_saves') {
+                openSaveModal();
+            }
+        });
 
         toggleBtn.addEventListener('click', openSaveModal);
         document.getElementById('btn-close-save-modal').addEventListener('click', closeSaveModal);

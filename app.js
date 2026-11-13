@@ -817,6 +817,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-player-back').addEventListener('click', closeGame);
     document.getElementById('btn-player-fav').addEventListener('click', toggleFavoriteActiveGame);
     document.getElementById('btn-player-fullscreen').addEventListener('click', toggleFullscreen);
+    document.getElementById('btn-player-saves')?.addEventListener('click', () => {
+        const iframe = document.getElementById('emulator-iframe');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'retroplay_open_saves' }, '*');
+        }
+    });
 
     // Ajustar overlay se pressionar ESC
     window.addEventListener('keydown', (e) => {
