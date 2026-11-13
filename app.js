@@ -2744,26 +2744,28 @@ function getKeyDisplayName(val) {
 
 function initControlsSettings() {
     // Defaults: keyCodes numéricos alinhados com o keyMap do EmulatorJS
-    // 0=B, 1=Y, 2=Select, 3=Start, 4=Up…7=Right, 8=A, 9=X, 10=L, 11=R
+    // 0=B (Ç), 1=Y (K), 2=Select (Shift), 3=Start (Enter)
+    // 4=Up (W), 5=Down (S), 6=Left (A), 7=Right (D)
+    // 8=A (L), 9=X (J), 10=L (I), 11=R (O)
     const defaultControls = {
-        "0": 90,  // Z  → B
-        "1": 65,  // A  → Y
-        "2": 16,  // Shift → Select
-        "3": 13,  // Enter → Start
-        "4": 38,  // ↑
-        "5": 40,  // ↓
-        "6": 37,  // ←
-        "7": 39,  // →
-        "8": 88,  // X  → A
-        "9": 83,  // S  → X
-        "10": 81, // Q  → L
-        "11": 87, // W  → R
-        "100": 49, // 1 → Salvar Estado
-        "101": 50, // 2 → Carregar Estado
-        "102": 51, // 3 → Trocar Slot
-        "103": 52, // 4 → Avanço Rápido
-        "104": 53, // 5 → Câmera Lenta
-        "105": 54  // 6 → Retroceder
+        "0": "186;ç", // Ç  → B (Voltar/Ação Secundária)
+        "1": 75,      // K  → Y
+        "2": 16,      // Shift → Select
+        "3": 13,      // Enter → Start
+        "4": 87,      // W  → D-Pad Cima
+        "5": 83,      // S  → D-Pad Baixo
+        "6": 65,      // A  → D-Pad Esquerda
+        "7": 68,      // D  → D-Pad Direita
+        "8": 76,      // L  → A (Confirmar/Ação Primária)
+        "9": 74,      // J  → X
+        "10": 73,     // I  → Ombro L
+        "11": 79,     // O  → Ombro R
+        "100": 49,    // 1  → Salvar Estado
+        "101": 50,    // 2  → Carregar Estado
+        "102": 51,    // 3  → Trocar Slot
+        "103": 52,    // 4  → Avanço Rápido
+        "104": 53,    // 5  → Câmera Lenta
+        "105": 54     // 6  → Retroceder
     };
 
     const selector = document.getElementById('settings-console-select');

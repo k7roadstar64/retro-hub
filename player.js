@@ -651,19 +651,23 @@ async function initPlayer() {
         const savedControls = localStorage.getItem('retroplay_controls_' + core) || localStorage.getItem('retroplay_controls');
 
         // Defaults como keyCodes numéricos (ID 0=B,1=Y,2=Sel,3=Start,4-7=DPad,8=A,9=X,10=L,11=R)
+        // Mapeamento ergonômico padrão:
+        // Mão Esquerda: W, A, S, D (Cima, Esquerda, Baixo, Direita)
+        // Mão Direita: J, K, L, Ç (X, Y, A, B)
+        // Ombros: I (L) e O (R)
         const defaultControls = {
-            "0":  { value: 90,  value2: "BUTTON_2" },  // Z  → B
-            "1":  { value: 65,  value2: "BUTTON_4" },  // A  → Y
+            "0":  { value: 186, value2: "BUTTON_2" },  // Ç → B
+            "1":  { value: 75,  value2: "BUTTON_4" },  // K → Y
             "2":  { value: 16,  value2: "SELECT"   },  // Shift → Select
             "3":  { value: 13,  value2: "START"    },  // Enter → Start
-            "4":  { value: 38,  value2: "DPAD_UP"           },
-            "5":  { value: 40,  value2: "DPAD_DOWN"         },
-            "6":  { value: 37,  value2: "DPAD_LEFT"         },
-            "7":  { value: 39,  value2: "DPAD_RIGHT"        },
-            "8":  { value: 88,  value2: "BUTTON_1" },  // X  → A
-            "9":  { value: 83,  value2: "BUTTON_3" },  // S  → X
-            "10": { value: 81,  value2: "LEFT_TOP_SHOULDER"  },  // Q → L
-            "11": { value: 87,  value2: "RIGHT_TOP_SHOULDER" }   // W → R
+            "4":  { value: 87,  value2: "DPAD_UP"           }, // W
+            "5":  { value: 83,  value2: "DPAD_DOWN"         }, // S
+            "6":  { value: 65,  value2: "DPAD_LEFT"         }, // A
+            "7":  { value: 68,  value2: "DPAD_RIGHT"        }, // D
+            "8":  { value: 76,  value2: "BUTTON_1" },  // L → A
+            "9":  { value: 74,  value2: "BUTTON_3" },  // J → X
+            "10": { value: 73,  value2: "LEFT_TOP_SHOULDER"  },  // I → L
+            "11": { value: 79,  value2: "RIGHT_TOP_SHOULDER" }   // O → R
         };
 
         let userKeys = savedControls ? JSON.parse(savedControls) : null;
