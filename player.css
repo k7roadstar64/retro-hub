@@ -65,3 +65,200 @@ html, body {
     0% { opacity: 0.6; }
     100% { opacity: 1; text-shadow: 0 0 20px rgba(255, 0, 128, 0.8); }
 }
+
+/* --- PAINEL DE SAVES NO BROWSER STORAGE --- */
+.storage-btn-toggle {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    background: rgba(18, 18, 28, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e0e0e0;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.storage-btn-toggle:hover {
+    background: rgba(255, 0, 128, 0.25);
+    border-color: #ff007f;
+    color: #fff;
+    transform: translateY(-1px);
+}
+.storage-btn-toggle svg {
+    width: 15px;
+    height: 15px;
+}
+
+.save-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.save-modal-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.save-modal {
+    background: #14141e;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    width: 90%;
+    max-width: 580px;
+    padding: 24px;
+    color: #fff;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 0, 128, 0.2);
+}
+.save-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.save-modal-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.save-modal-close {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+.save-modal-close:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+}
+
+.save-slots-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.save-slot-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #1c1c2b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.save-slot-card:hover {
+    border-color: rgba(255, 0, 128, 0.4);
+    background: #212134;
+}
+
+.save-slot-thumb {
+    width: 96px;
+    height: 64px;
+    background: #0d0d15;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+.save-slot-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.save-slot-thumb span {
+    font-size: 11px;
+    color: #555;
+    text-transform: uppercase;
+}
+
+.save-slot-info {
+    flex: 1;
+    min-width: 0;
+}
+.save-slot-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #eee;
+    margin-bottom: 4px;
+}
+.save-slot-meta {
+    font-size: 12px;
+    color: #888;
+}
+
+.save-slot-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-slot {
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, opacity 0.15s;
+}
+.btn-slot-save {
+    background: #ff007f;
+    color: #fff;
+}
+.btn-slot-save:hover {
+    background: #d6006b;
+}
+.btn-slot-load {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+.btn-slot-load:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+.btn-slot-load:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+.btn-slot-del {
+    background: transparent;
+    color: #ff4757;
+    border: 1px solid rgba(255, 71, 87, 0.25);
+    padding: 7px 9px;
+}
+.btn-slot-del:hover {
+    background: rgba(255, 71, 87, 0.15);
+}
+.btn-slot-del:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    border-color: transparent;
+}

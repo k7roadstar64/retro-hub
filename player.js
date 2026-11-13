@@ -144,10 +144,11 @@ function writeVirtualFiles() {
     }
 }
 
-// --- SISTEMA DE CACHE DE ROMS COM INDEXEDDB ---
+// --- SISTEMA DE CACHE DE ROMS E SAVES PERMANENTES COM INDEXEDDB ---
 const DB_NAME = 'RetroPlayCache';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'roms';
+const STORE_SAVES = 'states';
 const MAX_GAMES = 4; // Limite de jogos salvos localmente (LRU)
 
 function openDB() {
@@ -159,10 +160,70 @@ function openDB() {
                 const store = db.createObjectStore(STORE_NAME, { keyPath: 'url' });
                 store.createIndex('lastPlayed', 'lastPlayed', { unique: false });
             }
+            if (!db.objectStoreNames.contains(STORE_SAVES)) {
+                // key composta: 'romUrl_slot'
+                db.createObjectStore(STORE_SAVES, { keyPath: 'id' });
+            }
         };
         request.onsuccess = (e) => resolve(e.target.result);
         request.onerror = (e) => reject(e.target.error);
     });
+}
+
+// --- FUNÇÕES DE SAVESTATE PERMANENTE (BROWSER STORAGE) ---
+async function getStoredState(gameId, slot) {
+    try {
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_SAVES, 'readonly');
+            const store = tx.objectStore(STORE_SAVES);
+            const req = store.get(`${gameId}_slot_${slot}`);
+            req.onsuccess = (e) => resolve(e.target.result || null);
+            req.onerror = (e) => reject(e.target.error);
+        });
+    } catch (e) {
+        console.error('[Saves] Erro ao buscar save no storage:', e);
+        return null;
+    }
+}
+
+async function saveStoredState(gameId, slot, data, screenshotBlob = null) {
+    try {
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_SAVES, 'readwrite');
+            const store = tx.objectStore(STORE_SAVES);
+            const record = {
+                id: `${gameId}_slot_${slot}`,
+                gameId,
+                slot,
+                data,
+                screenshot: screenshotBlob,
+                savedAt: Date.now()
+            };
+            const req = store.put(record);
+            req.onsuccess = () => resolve(record);
+            req.onerror = (e) => reject(e.target.error);
+        });
+    } catch (e) {
+        console.error('[Saves] Erro ao gravar save no storage:', e);
+        throw e;
+    }
+}
+
+async function deleteStoredState(gameId, slot) {
+    try {
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_SAVES, 'readwrite');
+            const store = tx.objectStore(STORE_SAVES);
+            const req = store.delete(`${gameId}_slot_${slot}`);
+            req.onsuccess = () => resolve();
+            req.onerror = (e) => reject(e.target.error);
+        });
+    } catch (e) {
+        console.error('[Saves] Erro ao deletar save do storage:', e);
+    }
 }
 
 async function getCachedRom(url) {
@@ -525,6 +586,23 @@ async function initPlayer() {
         console.warn('replaceState falhou:', e);
     }
 
+    // Interceptar os botões nativos de Save State e Load State da barra do EmulatorJS
+    // para abrir diretamente nosso gerenciador de saves no navegador (IndexedDB com 3 slots)
+    // ao invés de abrir o diálogo do sistema operacional (Downloads / File Picker).
+    window.EJS_onSaveState = function(e) {
+        if (typeof window.retroplay_openSaveModal === 'function') {
+            window.retroplay_openSaveModal();
+        }
+        return 1; // Impede o comportamento padrão nativo (download do arquivo no Windows/OS)
+    };
+
+    window.EJS_onLoadState = function() {
+        if (typeof window.retroplay_openSaveModal === 'function') {
+            window.retroplay_openSaveModal();
+        }
+        return 1; // Impede o comportamento padrão nativo (abrir o explorador de arquivos)
+    };
+
     // Configurar variáveis globais para o EmulatorJS
     window.EJS_player = '#game';
     window.EJS_core = core;
@@ -663,6 +741,60 @@ async function initPlayer() {
         const rewindKeyCode = getHotkeyKeyCode("105", 54); // 6
 
         let currentSlot = 1;
+        const memorySaveSlots = {};
+        let isSavingOrLoading = false;
+
+        const performQuickSave = (slot) => {
+            if (isSavingOrLoading) return;
+            const gm = window.EJS_emulator && window.EJS_emulator.gameManager;
+            if (!gm) {
+                showToast('Emulador ainda não inicializado.');
+                return;
+            }
+            if (typeof gm.supportsStates === 'function' && !gm.supportsStates()) {
+                showToast('Este jogo/núcleo não suporta salvar estados.');
+                return;
+            }
+            isSavingOrLoading = true;
+            try {
+                const stateData = gm.getState();
+                if (stateData && stateData.length > 0) {
+                    memorySaveSlots[slot] = stateData;
+                    showToast(`Estado salvo no slot ${slot} ✓`);
+                } else {
+                    showToast(`Falha ao capturar estado no slot ${slot}.`);
+                }
+            } catch (err) {
+                console.error('[RetroPlay] Erro ao salvar estado rápido:', err);
+                showToast(`Erro ao salvar no slot ${slot}.`);
+            } finally {
+                setTimeout(() => { isSavingOrLoading = false; }, 300);
+            }
+        };
+
+        const performQuickLoad = (slot) => {
+            if (isSavingOrLoading) return;
+            const gm = window.EJS_emulator && window.EJS_emulator.gameManager;
+            if (!gm) {
+                showToast('Emulador ainda não inicializado.');
+                return;
+            }
+            const stateData = memorySaveSlots[slot];
+            if (!stateData) {
+                showToast(`Slot ${slot} está vazio! Salve primeiro.`);
+                return;
+            }
+            isSavingOrLoading = true;
+            try {
+                gm.loadState(stateData);
+                showToast(`Estado carregado do slot ${slot} ✓`);
+            } catch (err) {
+                console.error('[RetroPlay] Erro ao carregar estado rápido:', err);
+                showToast(`Falha ao carregar estado do slot ${slot}.`);
+            } finally {
+                setTimeout(() => { isSavingOrLoading = false; }, 300);
+            }
+        };
 
         const simulateKey = (type, key, keyCode) => {
             const canvas = document.querySelector('canvas') || document.getElementById('game') || document;
@@ -685,24 +817,25 @@ async function initPlayer() {
             // 1. Salvar Estado Rápido
             if (e.keyCode === saveKeyCode) {
                 e.preventDefault();
-                gm.quickSave(currentSlot);
-                showToast(`Estado salvo no slot ${currentSlot} ✓`);
+                if (!e.repeat) performQuickSave(currentSlot);
                 return;
             }
 
             // 2. Carregar Estado Rápido
             if (e.keyCode === loadKeyCode) {
                 e.preventDefault();
-                gm.quickLoad(currentSlot);
-                showToast(`Estado carregado do slot ${currentSlot}`);
+                if (!e.repeat) performQuickLoad(currentSlot);
                 return;
             }
 
             // 3. Trocar Slot
             if (e.keyCode === slotKeyCode) {
                 e.preventDefault();
-                currentSlot = (currentSlot % 5) + 1;
-                showToast(`Slot de save alterado para: ${currentSlot}`);
+                if (!e.repeat) {
+                    currentSlot = (currentSlot % 5) + 1;
+                    const hasSave = !!memorySaveSlots[currentSlot];
+                    showToast(`Slot alterado para: ${currentSlot} ${hasSave ? '(salvo)' : '(vazio)'}`);
+                }
                 return;
             }
 
@@ -730,12 +863,22 @@ async function initPlayer() {
             // Atalhos legados F2 / F4
             if (e.key === 'F2') {
                 e.preventDefault();
-                if (e.shiftKey) { gm.saveSaveFiles(); showToast('Save do jogo salvo ✓'); }
-                else             { gm.quickSave(currentSlot);   showToast(`Estado salvo no slot ${currentSlot} ✓`); }
+                if (!e.repeat) {
+                    if (e.shiftKey) {
+                        openSaveModal();
+                    } else {
+                        performQuickSave(currentSlot);
+                    }
+                }
             } else if (e.key === 'F4') {
                 e.preventDefault();
-                if (e.shiftKey) { gm.loadSaveFiles(); showToast('Save do jogo carregado'); }
-                else             { gm.quickLoad(currentSlot);   showToast(`Estado carregado do slot ${currentSlot}`); }
+                if (!e.repeat) {
+                    if (e.shiftKey) {
+                        openSaveModal();
+                    } else {
+                        performQuickLoad(currentSlot);
+                    }
+                }
             }
         }, true);
 
@@ -769,6 +912,134 @@ async function initPlayer() {
             const v = window.EJS_emulator.volume;
             if (v !== _lastVol) { _lastVol = v; localStorage.setItem('retroplay_volume', String(v)); }
         }, 1500);
+
+        // --- SISTEMA DE GESTÃO DE SAVES PERMANENTES NO BROWSER STORAGE ---
+        const gameKey = title || rom;
+        const modalBackdrop = document.createElement('div');
+        modalBackdrop.className = 'save-modal-backdrop';
+        modalBackdrop.innerHTML = `
+            <div class="save-modal">
+                <div class="save-modal-header">
+                    <div class="save-modal-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Saves no Navegador (Persistente)
+                    </div>
+                    <button class="save-modal-close" id="btn-close-save-modal">&times;</button>
+                </div>
+                <div class="save-slots-grid" id="save-slots-container">
+                    <!-- Gerado dinamicamente -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalBackdrop);
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'storage-btn-toggle';
+        toggleBtn.title = 'Gerenciar saves salvos no navegador';
+        toggleBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            <span>Saves</span>
+        `;
+        document.body.appendChild(toggleBtn);
+
+        const updateSaveSlotsUI = async () => {
+            const container = document.getElementById('save-slots-container');
+            if (!container) return;
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Carregando slots...</div>';
+
+            const slotsData = await Promise.all([1, 2, 3].map(slot => getStoredState(gameKey, slot)));
+
+            container.innerHTML = '';
+            [1, 2, 3].forEach((slot, index) => {
+                const save = slotsData[index];
+                const card = document.createElement('div');
+                card.className = 'save-slot-card';
+
+                const dateStr = save && save.savedAt 
+                    ? new Date(save.savedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'Vazio';
+
+                const thumbHtml = save && save.screenshot
+                    ? `<img src="${URL.createObjectURL(save.screenshot)}" alt="Slot ${slot}">`
+                    : `<span>Vazio</span>`;
+
+                card.innerHTML = `
+                    <div class="save-slot-thumb">${thumbHtml}</div>
+                    <div class="save-slot-info">
+                        <div class="save-slot-label">Slot Permanente ${slot}</div>
+                        <div class="save-slot-meta">${dateStr}</div>
+                    </div>
+                    <div class="save-slot-actions">
+                        <button class="btn-slot btn-slot-save" data-action="save" data-slot="${slot}">Salvar</button>
+                        <button class="btn-slot btn-slot-load" data-action="load" data-slot="${slot}" ${!save ? 'disabled' : ''}>Carregar</button>
+                        <button class="btn-slot btn-slot-del" data-action="del" data-slot="${slot}" ${!save ? 'disabled' : ''} title="Apagar save">✕</button>
+                    </div>
+                `;
+
+                // Ações dos botões
+                card.querySelector('[data-action="save"]').addEventListener('click', async () => {
+                    const gm = window.EJS_emulator && window.EJS_emulator.gameManager;
+                    if (!gm) return;
+                    try {
+                        const stateData = gm.getState();
+                        let screenshotBlob = null;
+                        try {
+                            const canvas = document.querySelector('canvas');
+                            if (canvas) {
+                                screenshotBlob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
+                            }
+                        } catch(e) {}
+
+                        await saveStoredState(gameKey, slot, stateData, screenshotBlob);
+                        showToast(`Progresso salvo no Slot Permanente ${slot} ✓`);
+                        updateSaveSlotsUI();
+                    } catch(err) {
+                        console.error(err);
+                        showToast(`Erro ao salvar no slot ${slot}.`);
+                    }
+                });
+
+                card.querySelector('[data-action="load"]').addEventListener('click', async () => {
+                    const gm = window.EJS_emulator && window.EJS_emulator.gameManager;
+                    if (!gm || !save) return;
+                    try {
+                        gm.loadState(save.data);
+                        modalBackdrop.classList.remove('open');
+                        showToast(`Slot Permanente ${slot} carregado com sucesso ✓`);
+                    } catch(err) {
+                        console.error(err);
+                        showToast(`Erro ao carregar slot ${slot}.`);
+                    }
+                });
+
+                card.querySelector('[data-action="del"]').addEventListener('click', async () => {
+                    if (confirm(`Deseja apagar o save permanente do Slot ${slot}?`)) {
+                        await deleteStoredState(gameKey, slot);
+                        showToast(`Slot ${slot} apagado.`);
+                        updateSaveSlotsUI();
+                    }
+                });
+
+                container.appendChild(card);
+            });
+        };
+
+        const openSaveModal = () => {
+            updateSaveSlotsUI();
+            modalBackdrop.classList.add('open');
+        };
+
+        const closeSaveModal = () => {
+            modalBackdrop.classList.remove('open');
+        };
+
+        window.retroplay_openSaveModal = openSaveModal;
+
+        toggleBtn.addEventListener('click', openSaveModal);
+        document.getElementById('btn-close-save-modal').addEventListener('click', closeSaveModal);
+        modalBackdrop.addEventListener('click', (e) => {
+            if (e.target === modalBackdrop) closeSaveModal();
+        });
     };
 
     // Callback se houver erro ou aviso

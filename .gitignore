@@ -25,3 +25,5 @@ bios/*
 Thumbs.db
 .env
 .env.*
+.vercel
+.env*
